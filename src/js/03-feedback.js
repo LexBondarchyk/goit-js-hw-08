@@ -1,36 +1,42 @@
 import { throttle } from 'lodash.throttle';
-
-const form = document.querySelector('.feedback-form');
-const email = document.querySelector('input[name="email"]');
-const message = document.querySelector('textarea[name="message"]');
-const LOCALSTORAGE_KEY = 'feedback-form-state';
-
-form.addEventListener(
-  'input',
-  throttle(e => {
-    const objectToSave = { email: email.value, message: message.value };
-    localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify(objectToSave));
-  }, 500)
-);
-
-form.addEventListener('submit', e => {
-  e.preventDefault();
-  console.log({ email: email.value, message: message.value });
-  form.reset();
-  localStorage.removeItem(LOCALSTORAGE_KEY);
-});
-
-const load = key => {
-  try {
-    const serializedState = localStorage.getItem(key);
-    return serializedState === null ? undefined : JSON.parse(serializedState);
-  } catch (error) {
-    console.error('Get state error: ', error.message);
-  }
+const throttle = require('lodash.throttle');
+const refs = {
+  onInputData: document.querySelector('.feedback-form'),
 };
 
-const storageData = load(LOCALSTORAGE_KEY);
-if (storageData) {
-  email.value = storageData.email;
-  message.value = storageData.message;
+refs.onInputData.addEventListener('input', throttle(handleInputData, 500));
+window.addEventListener('load', updateOutputOnload);
+refs.onInputData.addEventListener('submit', onSubmit);
+
+function handleInputData(event) {
+  event.preventDefault();
+  const message = refs.onInputData.elements.message.value;
+  const email = refs.onInputData.elements.email.value;
+  localStorage.setItem(
+    'feedback-form-state',
+    JSON.stringify({ message, email })
+  );
+}
+
+function updateOutputOnload(event) {
+  event.preventDefault();
+  const OutputText = JSON.parse(
+    localStorage.getItem('feedback-form-state')
+  ) || {
+    email: '',
+    message: '',
+  };
+  const { email, message } = OutputText;
+  refs.onInputData.elements.email.value = email;
+  refs.onInputData.elements.message.value = message;
+}
+
+function onSubmit(event) {
+  event.preventDefault();
+  const {
+    elements: { email, message },
+  } = event.currentTarget;
+  console.log({ email: email.value, message: message.value });
+  localStorage.removeItem('feedback-form-state');
+  refs.onInputData.reset();
 }
